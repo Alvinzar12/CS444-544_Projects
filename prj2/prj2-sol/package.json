@@ -1,0 +1,35 @@
+{
+  "name": "prj2-sol",
+  "version": "1.0.0",
+  "description": "CS 544 Project 2: lending library persisted in mongodb",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "clean": "shx rm -rf dist",
+    "build": "tsc",
+    "postbuild": "shx chmod a+x dist/index.js",
+    "watch": "tsc --watch",
+    "pretest": "npm run build",
+    "test": "mocha --reporter-options maxDiffSize=128000 dist/test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cs544-js-utils": "file:cs544-js-utils.tgz",
+    "cs544-node-utils": "file:cs544-node-utils.tgz",
+    "mongodb": "^6.9.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.16",
+    "@types/semver": "^7.5.8",
+    "chai": "^5.0.3",
+    "mocha": "^10.2.0",
+    "mongodb-memory-server": "^10.1.1",
+    "shx": "^0.3.4",
+    "typescript": "^5.3.3"
+  }
+}

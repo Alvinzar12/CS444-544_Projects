@@ -13,6 +13,7 @@ const MSGS = {
   'msg.nonEmpty': 'must be non-empty',
   'msg.oneOrMoreAuthors': 'must have one or more authors',
   'msg.publishYear': `must be a past year on or after ${GUTENBERG_YEAR}`,
+  'msg.searchWords': 'must contain a word with at least 2 letters',
 };
 
 // use zod to force Book to have the following fields:
@@ -24,13 +25,16 @@ const MSGS = {
 //   publisher: a non-empty string.
 //   nCopies: an optional positive integer
 const Book =  z.object({
-  isbn: z.string(),
-  title: z.string(),
-  authors: z.string().array(),
-  pages: z.number(),
-  year: z.number(),
-  publisher: z.string(),
-  nCopies: z.number(),
+  isbn: z.string().regex(/^\d{3}-\d{3}-\d{3}-\d$/, 'msg.isbn'),
+  title: z.string().min(1, 'msg.nonEmpty'),
+  authors: z.array(z.string().min(1, 'msg.nonEmpty'))
+    .min(1, 'msg.oneOrMoreAuthors'),
+  pages: z.number().int().positive(),
+  year: z.number().int()
+    .min(GUTENBERG_YEAR, 'msg.publishYear')
+    .max(NOW_YEAR, 'msg.publishYear'),
+  publisher: z.string().min(1, 'msg.nonEmpty'),
+  nCopies: z.number().int().positive().optional(),
 });
 
 export type Book = z.infer<typeof Book>;
@@ -43,9 +47,9 @@ export type XBook = z.infer<typeof XBook>;
 //   index: an optional non-negative integer.
 //   count: an optional non-negative integer.
 const Find = z.object({
-  search: z.string(),
-  index: z.number(),
-  count: z.number(),
+  search: z.string().regex(/\w\w/, 'msg.searchWords'),
+  index: z.number().int().min(0).optional(),
+  count: z.number().int().min(0).optional(),
 });
 export type Find = z.infer<typeof Find>;
 
@@ -53,8 +57,8 @@ export type Find = z.infer<typeof Find>;
 //   isbn: a ISBN-10 string of the form ddd-ddd-ddd-d.
 //   patronId: a non-empty string.
 const Lend = z.object({
-  isbn: z.string(),
-  patronId: z.string(),
+  isbn: z.string().regex(/^\d{3}-\d{3}-\d{3}-\d$/, 'msg.isbn'),
+  patronId: z.string().min(1, 'msg.nonEmpty'),
 });
 export type Lend = z.infer<typeof Lend>;
 

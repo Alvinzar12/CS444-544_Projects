@@ -27,7 +27,7 @@ export class LendingLibrary {
 
   /** clear out underlying db */
   async clear() : Promise<Errors.Result<void>> {
-    return Errors.errResult('TODO');
+    return await this.dao.clear();
   }
 
   /** Add one-or-more copies of book represented by req to this library.
