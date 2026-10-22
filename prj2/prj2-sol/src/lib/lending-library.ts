@@ -48,7 +48,24 @@ export class LendingLibrary {
    *      inconsistent with the data already present.
    */
   async addBook(req: Record<string, any>): Promise<Errors.Result<Lib.XBook>> {
-    return Errors.errResult('TODO');
+    const bookResult = Lib.validate<Lib.Book>('addBook', req);
+    if (!bookResult.isOk) return bookResult as Errors.Result<Lib.XBook>;
+    const book = bookResult.val;
+    const nCopies = book.nCopies ?? 1;
+
+    const existingResult = await this.dao.getBook(book.isbn);
+    if (!existingResult.isOk) return existingResult as Errors.Result<Lib.XBook>;
+    const existing = existingResult.val;
+
+    if (!existing) return await this.dao.addBook({ ...book, nCopies });
+
+    const badField = compareBook(existing, book);
+    if (badField) {
+      return Errors.errResult(
+        `book ${book.isbn} already exists with a different ${badField}`,
+        { code: 'BAD_REQ', widget: badField });
+    }
+    return await this.dao.addCopies(book.isbn, nCopies); 
   }
 
   /** Return all books whose authors and title fields contain all
@@ -73,7 +90,13 @@ export class LendingLibrary {
   async findBooks(req: Record<string, any>)
     : Promise<Errors.Result<Lib.XBook[]>>
   {
-    return Errors.errResult('TODO');
+    const findResult = Lib.validate<Lib.Find>('findBooks', req);
+    if (!findResult.isOk) return findResult as Errors.Result<Lib.XBook[]>;
+    const { search, index = 0, count = DEFAULT_COUNT } = findResult.val;
+
+    const words = search.match(/\w{2,}/g) ?? [];
+    const quoted = words.map(w => `"${w}"`).join(' ');
+    return await this.dao.findBooks(quoted, index, count);
   }
 
 
@@ -120,6 +143,7 @@ const DEFAULT_COUNT = 5;
  *  there is no such field.
  */
 function compareBook(book0: Lib.Book, book1: Lib.Book) : string|undefined {
+  if (book0.authors.length !== book1.authors.length) return 'authors';
   if (book0.title !== book1.title) return 'title';
   if (book0.authors.some((a, i) => a !== book1.authors[i])) return 'authors';
   if (book0.pages !== book1.pages) return 'pages';

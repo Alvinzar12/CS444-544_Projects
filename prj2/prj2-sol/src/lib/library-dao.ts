@@ -98,26 +98,64 @@ export class LibraryDao {
 
   //returns undefined if there is no book with this isbn
   async getBook(isbn: string) : Promise<Errors.Result<Lib.XBook|undefined>> {
-    return Errors.errResult('TODO');
+      try {
+      	const doc = await this.books.findOne({ _id: isbn });
+      	return Errors.okResult(doc ? toXBook(doc) : undefined);
+    }
+    catch (e) {
+      	return Errors.errResult(e.message, 'DB');
+    }
   }
 
   async addBook(book: Lib.XBook) : Promise<Errors.Result<Lib.XBook>> {
-    return Errors.errResult('TODO');
+      try {
+      	await this.books.insertOne({ _id: book.isbn, ...book } as BookDoc);
+	return Errors.okResult(book);
+    }
+    catch (e) {
+      	return Errors.errResult(e.message, 'DB');
+    }
   }
 
   //adds nCopies to the book and returns the updated book
   async addCopies(isbn: string, nCopies: number)
     : Promise<Errors.Result<Lib.XBook>>
   {
-    return Errors.errResult('TODO');
+   try {
+      const doc = await this.books.findOneAndUpdate(
+        { _id: isbn },
+        { $inc: { nCopies } },
+        { returnDocument: mongo.ReturnDocument.AFTER },
+      );
+      if (!doc) {
+        return Errors.errResult(`no book with isbn ${isbn}`,
+                                { code: 'BAD_REQ', widget: 'isbn' });
+      }
+      return Errors.okResult(toXBook(doc));
+    }
+    catch (e) {
+      return Errors.errResult(e.message, 'DB');
+    }
   }
 
   //search is the words in quotes, like '"javascript" "flanagan"'
   async findBooks(search: string, index: number, count: number)
     : Promise<Errors.Result<Lib.XBook[]>>
   {
-    return Errors.errResult('TODO');
-  }
+    if (count === 0) return Errors.okResult([]);
+    try {
+      const docs = await this.books
+        .find({ $text: { $search: search } })
+        .sort({ title: 1 })
+        .skip(index)
+        .limit(count)
+        .toArray();
+      return Errors.okResult(docs.map(toXBook));
+    }
+    catch (e) {
+      return Errors.errResult(e.message, 'DB');
+    } 
+ }
 
   async countLends(isbn: string) : Promise<Errors.Result<number>> {
     return Errors.errResult('TODO');
@@ -142,3 +180,8 @@ export class LibraryDao {
   }
 
 } //class LibDao
+
+function toXBook(doc: Partial<BookDoc>) : Lib.XBook {
+  const { _id, ...book } = doc;
+  return book as Lib.XBook;
+}

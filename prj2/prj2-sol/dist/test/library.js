@@ -2,7 +2,7 @@ import * as Lib from '../lib/library.js';
 import { BOOKS } from './test-data.js';
 import { assert, expect } from 'chai';
 const BOOK_1 = BOOKS[0];
-describe.skip('library types', () => {
+describe('library types', () => {
     describe('Book validation', () => {
         it('a good book is valid', () => {
             const result = Lib.validate('addBook', BOOK_1);
@@ -28,7 +28,11 @@ describe.skip('library types', () => {
             expect(result.errors.length).to.be.gt(0);
         });
         it('having no authors is invalid', () => {
-            assert.fail('TODO');
+            const req = { ...BOOK_1 };
+            req.authors = [];
+            const result = Lib.validate('addBook', req);
+            assert(result.isOk === false);
+            expect(result.errors.length).to.be.gt(0);
         });
         it('an empty author is invalid', () => {
             const req = { ...BOOK_1 };
@@ -38,7 +42,18 @@ describe.skip('library types', () => {
             expect(result.errors.length).to.be.gt(0);
         });
         it('badly typed fields makes a good book invalid', () => {
-            assert.fail('TODO');
+            //a string where a number should be
+            const req1 = { ...BOOK_1 };
+            req1.pages = 'hello';
+            const result1 = Lib.validate('addBook', req1);
+            assert(result1.isOk === false);
+            expect(result1.errors.length).to.be.gt(0);
+            //a number where a string should be
+            const req2 = { ...BOOK_1 };
+            req2.title = 11;
+            const result2 = Lib.validate('addBook', req2);
+            assert(result2.isOk === false);
+            expect(result2.errors.length).to.be.gt(0);
         });
         it('empty string fields makes a good book invalid', () => {
             for (const [k, v] of Object.entries(BOOK_1)) {

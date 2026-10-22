@@ -5,7 +5,7 @@ import { BOOKS, } from './test-data.js';
 import { assert, expect } from 'chai';
 //use assert(result.isOk === true) and assert(result.isOk === false)
 //to ensure that typescript narrows result correctly
-describe.skip('lending library', () => {
+describe('lending library', () => {
     let memDao;
     let library;
     beforeEach(async function () {

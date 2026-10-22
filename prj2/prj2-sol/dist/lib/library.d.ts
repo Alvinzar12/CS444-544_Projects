@@ -7,7 +7,7 @@ declare const Book: z.ZodObject<{
     pages: z.ZodNumber;
     year: z.ZodNumber;
     publisher: z.ZodString;
-    nCopies: z.ZodNumber;
+    nCopies: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     year?: number;
     isbn?: string;
@@ -54,8 +54,8 @@ declare const XBook: z.ZodObject<{
 export type XBook = z.infer<typeof XBook>;
 declare const Find: z.ZodObject<{
     search: z.ZodString;
-    index: z.ZodNumber;
-    count: z.ZodNumber;
+    index: z.ZodOptional<z.ZodNumber>;
+    count: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     search?: string;
     index?: number;

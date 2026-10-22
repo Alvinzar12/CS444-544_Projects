@@ -1,4 +1,5 @@
 import { Errors } from 'cs544-js-utils';
+import * as Lib from './library.js';
 /** Note that errors are documented using the `code` option which must be
  *  returned (the `message` can be any suitable string which describes
  *  the error as specifically as possible).  Whenever possible, the
@@ -19,7 +20,7 @@ export class LendingLibrary {
     }
     /** clear out underlying db */
     async clear() {
-        return Errors.errResult('TODO');
+        return await this.dao.clear();
     }
     /** Add one-or-more copies of book represented by req to this library.
      *  If the book is already in the library and consistent with the book
@@ -39,7 +40,22 @@ export class LendingLibrary {
      *      inconsistent with the data already present.
      */
     async addBook(req) {
-        return Errors.errResult('TODO');
+        const bookResult = Lib.validate('addBook', req);
+        if (!bookResult.isOk)
+            return bookResult;
+        const book = bookResult.val;
+        const nCopies = book.nCopies ?? 1;
+        const existingResult = await this.dao.getBook(book.isbn);
+        if (!existingResult.isOk)
+            return existingResult;
+        const existing = existingResult.val;
+        if (!existing)
+            return await this.dao.addBook({ ...book, nCopies });
+        const badField = compareBook(existing, book);
+        if (badField) {
+            return Errors.errResult(`book ${book.isbn} already exists with a different ${badField}`, { code: 'BAD_REQ', widget: badField });
+        }
+        return await this.dao.addCopies(book.isbn, nCopies);
     }
     /** Return all books whose authors and title fields contain all
      *  "words" in req.search, where a "word" is a max sequence of /\w/
@@ -61,7 +77,13 @@ export class LendingLibrary {
      *    BAD_REQ: no words in search, index/count not int or negative.
      */
     async findBooks(req) {
-        return Errors.errResult('TODO');
+        const findResult = Lib.validate('findBooks', req);
+        if (!findResult.isOk)
+            return findResult;
+        const { search, index = 0, count = DEFAULT_COUNT } = findResult.val;
+        const words = search.match(/\w{2,}/g) ?? [];
+        const quoted = words.map(w => `"${w}"`).join(' ');
+        return await this.dao.findBooks(quoted, index, count);
     }
     /** Set up patron req.patronId to check out book req.isbn.
      *
@@ -97,6 +119,8 @@ const DEFAULT_COUNT = 5;
  *  there is no such field.
  */
 function compareBook(book0, book1) {
+    if (book0.authors.length !== book1.authors.length)
+        return 'authors';
     if (book0.title !== book1.title)
         return 'title';
     if (book0.authors.some((a, i) => a !== book1.authors[i]))
