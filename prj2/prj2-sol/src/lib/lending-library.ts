@@ -111,7 +111,24 @@ export class LendingLibrary {
    *      patron already has a copy of the same book checked out
    */
   async checkoutBook(req: Record<string, any>) : Promise<Errors.Result<void>> {
-    return Errors.errResult('TODO');
+	  const lendResult = await this.checkLend('checkoutBook', req);
+	  if (!lendResult.isOk) return lendResult as Errors.Result<void>;
+	  const {isbn, patronId, book } = lendResult.val;
+	  const hasResult = await this.dao.hasLend(isbn, patronId);
+	  if(!hasResult.isOk) return hasResult as Errors.Result<void>;
+	  if(hasResult.val) {
+		  return Errors.errResult(`patron ${patronId} already has book ${isbn} checked out`, 
+					 {code: 'BAD_REQ', widget: 'isbn'});
+	  }
+
+	  const countResult = await this.dao.countLends(isbn);
+	  if (!countResult.isOk) return countResult as Errors.Result<void>;
+	  if (countResult.val >= book.nCopies) {
+		  return Errors.errResult(`There are no copies of book ${isbn} available for checkout`,
+					  {code: 'BAD_REQ', widget: 'isbn'});
+	  }
+
+	  return await this.dao.addLend(isbn, patronId);
   }
 
   /** Set up patron req.patronId to returns book req.isbn.
@@ -124,11 +141,33 @@ export class LendingLibrary {
    *    no checkout of the book by patronId.
    */
   async returnBook(req: Record<string, any>) : Promise<Errors.Result<void>> {
-    return Errors.errResult('TODO');
+	  const lendResult = await this.checkLend('returnBook', req);
+	  if (!lendResult.isOk) return lendResult as Errors.Result<void>;
+	  const {isbn, patronId} = lendResult.val;
+	  return await this.dao.removeLend(isbn, patronId);
   }
 
   //add class code as needed
+  private async checkLend(command: 'checkoutBook' | 'returnBook', req: Record<string, any>)
+  : Promise<Errors.Result<Lib.Lend & {book: Lib.XBook}>>
+  {
+	  const lendResult = Lib.validate<Lib.Lend>(command, req);
+	  if (!lendResult.isOk) {
+		  return lendResult as Errors.Result<Lib.Lend & {book: Lib.XBook}>;
+	  }
+	  const lend = lendResult.val;
 
+	  const bookResult = await this.dao.getBook(lend.isbn);
+	  if(!bookResult.isOk) {
+		  return bookResult as Errors.Result<Lib.Lend & { book: Lib.XBook }>;
+	  }
+	  const book = bookResult.val;
+	  if(!book) {
+		  return Errors.errResult(`unknown book ${lend.isbn}`, 
+					  {code: 'BAD_REQ', widget: 'isbn'});
+	  }
+	  return Errors.okResult({...lend, book});
+}
 }
 
 // default count for find requests

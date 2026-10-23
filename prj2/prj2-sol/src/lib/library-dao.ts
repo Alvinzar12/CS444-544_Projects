@@ -60,6 +60,7 @@ export class LibraryDao {
       const books = db.collection<BookDoc>('books');
       const lends = db.collection<LendDoc>('lends');
       await books.createIndex({ title: 'text', authors: 'text' });
+      await lends.createIndex({isbn: 1, patronId: 1}, {unique: true});
       return Errors.okResult(new LibraryDao(client, books, lends));
     }
     catch (error) {
@@ -158,25 +159,56 @@ export class LibraryDao {
  }
 
   async countLends(isbn: string) : Promise<Errors.Result<number>> {
-    return Errors.errResult('TODO');
+	  try {
+		  return Errors.okResult(await this.lends.countDocuments({isbn}));
+	  }
+	  catch (e) {
+		  return Errors.errResult(e.message, 'DB');
+	  }
   }
 
   async hasLend(isbn: string, patronId: string)
     : Promise<Errors.Result<boolean>>
   {
-    return Errors.errResult('TODO');
+    try {
+	    const doc = await this.lends.findOne({isbn, patronId});
+	    return Errors.okResult(doc != null);
+    }
+    catch (e) {
+	    return Errors.errResult(e.message, 'DB');
+    }
   }
 
   async addLend(isbn: string, patronId: string)
     : Promise<Errors.Result<void>>
   {
-    return Errors.errResult('TODO');
+    try {
+	    await this.lends.insertOne({isbn, patronId});
+	    return Errors.VOID_RESULT;
+    }
+    catch (e) {
+	    if (e.code === 11000) {
+		    return Errors.errResult(`patron ${patronId} already has book ${isbn} checked out`, 
+					    { code: 'BAD_REQ', widget: 'isbn'});
+	    }
+	    return Errors.errResult(e.message, 'DB');
+    }
   }
 
   async removeLend(isbn: string, patronId: string)
     : Promise<Errors.Result<void>>
   {
-    return Errors.errResult('TODO');
+	  try {
+		  const result = await this.lends.deleteOne({isbn, patronId});
+		  if (result.deletedCount === 0) {
+			  return Errors.errResult(`patron ${patronId} does not have book ${isbn} checked out`,
+						  { code: 'BAD_REQ', widget: 'isbn'});
+		  }
+		  return Errors.VOID_RESULT;
+	  }
+	  catch (e) {
+		  return Errors.errResult(e.message, 'DB');
+	  }
   }
 
 } //class LibDao
