@@ -55,6 +55,8 @@ function setupRoutes(app: Express.Application) {
   //TODO: set up application routes
   app.put(`${base}/books`, doAddBook(app));
   app.get(`${base}/books/:isbn`, doGetBook(app));
+  app.get(`${base}/books`, doFindBooks(app));
+  app.delete(base, doClear(app));
 
   //must be last
   app.use(do404(app));  //custom handler for page not found
@@ -85,6 +87,49 @@ function doGetBook(app: Express.Application) {
       const result = await app.locals.model.getBook(req.params.isbn);
       if (!result.isOk) throw result;
       res.json(selfResult(req, result.val));
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+
+/** Find-Books: GET BASE/books?search=SEARCH[&index=I][&count=C]
+ *  Requests one extra result beyond count so that pagedResult() can tell
+ *  whether a next link is needed.  Bad index/count values are passed
+ *  through unchanged so that the lending-library reports the error.
+ */
+function doFindBooks(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const q: Record<string, any> = { ...req.query };
+      for (const k of [ 'index', 'count' ]) {
+        const v = q[k];
+        if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) {
+          q[k] = Number(v);   //query params are always strings
+        }
+      }
+      const count = q.count ?? DEFAULT_COUNT;
+      if (Number.isInteger(count) && count >= 0) q.count = count + 1;
+      const result = await app.locals.model.findBooks(q);
+      if (!result.isOk) throw result;
+      res.json(pagedResult(req, 'isbn', result.val as Lib.XBook[]));
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+
+/** Clear: DELETE BASE */
+function doClear(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const result = await app.locals.model.clear();
+      if (!result.isOk) throw result;
+      res.json(selfResult(req, true));
     }
     catch(err) {
       const mapped = mapResultErrors(err);
@@ -264,7 +309,7 @@ const CORS_OPTIONS = {
   origin: true,
 
   //methods allowed for cross-origin requests
-  methods: [ 'GET', 'PUT', ],
+  methods: [ 'GET', 'PUT', 'DELETE', ],
 
   //request headers allowed on cross-origin requests
   //used to allow JSON content
