@@ -53,6 +53,8 @@ function setupRoutes(app: Express.Application) {
   
   //set up application routes
   //TODO: set up application routes
+  app.put(`${base}/books`, doAddBook(app));
+  app.get(`${base}/books/:isbn`, doGetBook(app));
 
   //must be last
   app.use(do404(app));  //custom handler for page not found
@@ -61,6 +63,35 @@ function setupRoutes(app: Express.Application) {
 
 //TODO: set up route handlers
 
+function doAddBook(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const result = await app.locals.model.addBook(req.body);
+      if (!result.isOk) throw result;
+      const book: Lib.XBook = result.val;
+      res.location(selfHref(req, book.isbn));
+      res.status(STATUS.CREATED).json(selfResult(req, book, STATUS.CREATED));
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+
+function doGetBook(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const result = await app.locals.model.getBook(req.params.isbn);
+      if (!result.isOk) throw result;
+      res.json(selfResult(req, result.val));
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
 
 /** log request on stdout */
 function doTrace(app: Express.Application) {
