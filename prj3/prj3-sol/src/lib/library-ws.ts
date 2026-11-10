@@ -57,6 +57,9 @@ function setupRoutes(app: Express.Application) {
   app.get(`${base}/books/:isbn`, doGetBook(app));
   app.get(`${base}/books`, doFindBooks(app));
   app.delete(base, doClear(app));
+  app.put(`${base}/lendings`, doCheckoutBook(app));
+  app.delete(`${base}/lendings`, doReturnBook(app));
+  app.get(`${base}/lendings`, doFindLendings(app));
 
   //must be last
   app.use(do404(app));  //custom handler for page not found
@@ -136,6 +139,51 @@ function doClear(app: Express.Application) {
       res.status(mapped.status).json(mapped);
     }
   };
+}
+
+/* Checkout Book: Put base/lendings */
+function doCheckoutBook(app: Express.Application) {
+	return async function(req: Express.Request, res: Express.Response) {
+		try {
+			const result = await app.locals.model.checkoutBook(req.body);
+			if(!result.isOk) throw result;
+			res.json(selfResult(req, undefined));
+		}
+		catch(err) {
+			const mapped = mapResultErrors(err);
+			res.status(mapped.status).json(mapped);
+		}
+	};
+}
+
+/* Return Book: Delete base/lendings */
+function doReturnBook(app: Express.Application) {
+	return async function(req: Express.Request, res: Express.Response) {
+		try{
+			const result = await app.locals.model.returnBook(req.body);
+			if (!result.isOk) throw result;
+			res.json(selfResult(req, true));
+		}
+		catch(err) {
+			const mapped = mapResultErrors(err);
+			res.status(mapped.status).json(mapped);
+		}
+	};
+}
+
+/* Find lendings: Get base/lendings */
+function doFindLendings(app: Express.Application) {
+	return async function(req: Express.Request, res: Express.Response) {
+		try{
+			const result = await app.locals.model.findLendings(req.query);
+			if (!result.isOk) throw result;
+			res.json(selfResult(req, result.val));
+		}
+		catch(err) {
+			const mapped = mapResultErrors(err);
+			res.status(mapped.status).json(mapped);
+			}
+	};
 }
 
 /** log request on stdout */
