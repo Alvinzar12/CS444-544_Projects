@@ -4,5 +4,5 @@ One Email Address: lsarmiento@binghamton.edu
 
 Problems: an "overrides" entry was added to package.json because npm ci failed with the provided library-types package (it could not find its nested
 cs544-js-utils tgz).
-Status of Project: In progress
+Status of Project: Complete
 
