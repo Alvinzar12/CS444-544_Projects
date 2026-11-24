@@ -237,12 +237,12 @@ function requestUrl(req: Express.Request) {
   return `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 }
 
-/** Return path for req.  If id specified extend with /id, otherwise add in
- *  any query params. 
+/** Return absolute URL for req.  If id specified extend with /id, otherwise
+ *  add in any query params.
  */
 function selfHref(req: Express.Request, id: string = '') {
   const url = new URL(requestUrl(req));
-  return url.pathname + (id ? `/${id}` : url.search);
+  return url.origin + url.pathname + (id ? `/${id}` : url.search);
 }
 
 /** Produce paging link for next (dir === 1), prev (dir === -1)
@@ -258,7 +258,7 @@ function pageLink(req: Express.Request, nResults: number, dir: 1|-1) {
   const index = dir > 0 ? index0 + count : count > index0 ? 0 : index0 - count;
   url.searchParams.set('index', String(index));
   url.searchParams.set('count', String(count));
-  return url.pathname + url.search;
+  return url.origin + url.pathname + url.search;
 }
 
 /** Return a success envelope for a single result. */

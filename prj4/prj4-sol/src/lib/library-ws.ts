@@ -26,7 +26,7 @@ export class LibraryWs {
   async getBookByUrl(bookUrl: URL|string)
     : Promise<Errors.Result<SuccessEnvelope<Lib.XBook>>>
   {
-    return Errors.errResult('TODO');
+    return getEnvelope<Lib.XBook, SuccessEnvelope<Lib.XBook>>(bookUrl);
   }
 
   /** given an absolute url findUrl ending with /books with query
@@ -36,26 +36,51 @@ export class LibraryWs {
   async findBooksByUrl(findUrl: URL|string)
     : Promise<Errors.Result<PagedEnvelope<Lib.XBook>>>
   {
-    return Errors.errResult('TODO');
+    return getEnvelope<Lib.XBook, PagedEnvelope<Lib.XBook>>(findUrl);
   }
 
   /** check out book specified by lend */
   //make a PUT request to /lendings
   async checkoutBook(lend: Lib.Lend) : Promise<Errors.Result<void>> {
-    return Errors.errResult('TODO');
+    return this.sendLend('PUT', lend);
   }
 
   /** return book specified by lend */
   //make a DELETE request to /lendings
   async returnBook(lend: Lib.Lend) : Promise<Errors.Result<void>> {
-    return Errors.errResult('TODO');
+    return this.sendLend('DELETE', lend);
   }
 
   /** return Lend[] of all lendings for isbn. */
   //make a GET request to /lendings with query-params set
   //to { findBy: 'isbn', isbn }.
   async getLends(isbn: string) : Promise<Errors.Result<Lib.Lend[]>> {
-    return Errors.errResult('TODO');
+    const url = Utils.makeQueryUrl(`${this.url}/api/lendings`,
+				   { findBy: 'isbn', isbn });
+    const result =
+      await getEnvelope<Lib.Lend[], SuccessEnvelope<Lib.Lend[]>>(url);
+    if (result.isOk === false) return result;
+    return Errors.okResult(result.val.result);
+  }
+
+  //send lend to /lendings using method (PUT to check out, DELETE to return); shared by checkoutBook() and returnBook()
+  private async sendLend(method: string, lend: Lib.Lend)
+    : Promise<Errors.Result<void>>
+  {
+    const options = {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(lend),
+    };
+    const result =
+      await fetchJson<SuccessEnvelope<void>|ErrorEnvelope>(
+	`${this.url}/api/lendings`, options);
+    if (result.isOk === false) return result;
+    const envelope = result.val;
+    if (envelope.isOk === false) {
+      return new Errors.ErrResult(envelope.errors as Errors.Err[]);
+    }
+    return Errors.VOID_RESULT;
   }
 
 
