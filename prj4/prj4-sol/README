@@ -1,6 +1,8 @@
-Team Member Names:		XXX
-Team Member B-Numbers:	        XXX
-One Email Address:		XXX
+Team Member Names: Alvin Thomas, Kevin Jiang, Luis Sarmiento
+Team Member B-Numbers:B00964338, B01072466, B01067563
+One Email Address:
 
-Add text here as needed to document the status of your project.
+Problems: an "overrides" entry was added to package.json because npm ci failed with the provided library-types package (it could not find its nested
+cs544-js-utils tgz).
+Status of Project: In progress
 
