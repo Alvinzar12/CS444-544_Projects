@@ -1,6 +1,6 @@
 Team Member Names: Alvin Thomas, Kevin Jiang, Luis Sarmiento
 Team Member B-Numbers:B00964338, B01072466, B01067563
-One Email Address:
+One Email Address: lsarmiento@binghamton.edu
 
 Problems: an "overrides" entry was added to package.json because npm ci failed with the provided library-types package (it could not find its nested
 cs544-js-utils tgz).

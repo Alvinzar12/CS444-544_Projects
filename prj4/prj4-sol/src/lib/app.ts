@@ -179,7 +179,13 @@ class App {
   //(already implemented in library-ws.ts), displaying any errors, and then
   //refresh the borrowers list by calling this.showBorrowers(isbn).
   private async returnBook(isbn: string, patronId: string) {
-    console.log('returnBook not implemented yet', isbn, patronId);
+	  this.clearErrors();
+	  const result = await this.ws.returnBook({isbn, patronId});
+	  if (result.isOk === false) {
+		  displayErrors(result.errors);
+		  return;
+	  }
+	  await this.showBorrowers(isbn);
   }
  
   /** unwrap a result, displaying errors if !result.isOk, 
